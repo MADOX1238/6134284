@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الدردشة العامة</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            color: #fff;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background: url('https://i.pinimg.com/originals/e4/fa/06/e4fa061200efe8e8b35955892e984e60.gif') no-repeat center center fixed;
+            background-size: cover;
+            padding: 10px;
+        }
+
+        #messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5); /* خلفية نصف شفافة */
+            border-radius: 5px;
+        }
+
+        #message {
+            width: calc(100% - 90px);
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+
+        #send {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+
+        #send:hover {
+            background-color: #0056b3;
+        }
+        
+        .message {
+            margin-bottom: 10px;
+        }
+        
+        .username {
+            font-weight: bold;
+        }
+
+        .online-users {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 5px;
+        }
+
+        .online-users h2 {
+            margin: 0;
+            font-size: 18px;
+            color: #fff;
+        }
+
+        .online-users ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .online-users li {
+            padding: 5px;
+            border-bottom: 1px solid #444;
+        }
+    </style>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyASc84dwAGUIJ_5b4o_byoxZ9Y-7AviJOI",
+            authDomain: "mad3-23831.firebaseapp.com",
+            databaseURL: "https://mad3-23831-default-rtdb.firebaseio.com",
+            projectId: "mad3-23831",
+            storageBucket: "mad3-23831.appspot.com",
+            messagingSenderId: "361298922223",
+            appId: "1:361298922223:web:8d2103c6096190ec32691a",
+            measurementId: "G-DJWJ2EERWD"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        function sendMessage() {
+            const message = document.getElementById('message').value;
+            const username = localStorage.getItem('username');
+            const userColor = localStorage.getItem('userColor');
+            if (message && username) {
+                const newMessageRef = ref(database, 'messages/' + Date.now());
+                set(newMessageRef, {
+                    text: message,
+                    user: username,
+                    color: userColor
+                });
+                document.getElementById('message').value = '';
+            }
+        }
+
+        function displayMessages(snapshot) {
+            const messagesContainer = document.getElementById('messages');
+            messagesContainer.innerHTML = '';
+            snapshot.forEach(childSnapshot => {
+                const message = childSnapshot.val();
+                const messageElement = document.createElement('p');
+                messageElement.className = 'message';
+                messageElement.innerHTML = `<span class="username" style="color: ${message.color}">${message.user}:</span> ${message.text}`;
+                messagesContainer.appendChild(messageElement);
+            });
+        }
+
+        function updateOnlineUsers() {
+            const onlineUsersRef = ref(database, 'onlineUsers');
+            onValue(onlineUsersRef, snapshot => {
+                const onlineUsersList = document.getElementById('online-users-list');
+                onlineUsersList.innerHTML = '';
+                snapshot.forEach(childSnapshot => {
+                    const user = childSnapshot.val();
+                    const userElement = document.createElement('li');
+                    userElement.textContent = user.username;
+                    onlineUsersList.appendChild(userElement);
+                });
+            });
+        }
+
+        function setUserOnline() {
+            const username = localStorage.getItem('username');
+            const userColor = localStorage.getItem('userColor');
+            if (username) {
+                const userRef = ref(database, 'onlineUsers/' + username);
+                set(userRef, {
+                    username: username,
+                    color: userColor
+                });
+            }
+        }
+
+        function removeUserOnline() {
+            const username = localStorage.getItem('username');
+            if (username) {
+                const userRef = ref(database, 'onlineUsers/' + username);
+                remove(userRef);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const messagesRef = ref(database, 'messages');
+            onValue(messagesRef, snapshot => displayMessages(snapshot));
+
+            updateOnlineUsers();
+            setUserOnline();
+
+            window.addEventListener('beforeunload', removeUserOnline);
+
+            document.getElementById('send').addEventListener('click', sendMessage);
+        });
+    </script>
+</head>
+<body>
+    <div class="chat-container">
+        <h1>الدردشة العامة</h1>
+        <div id="messages"></div>
+        <div>
+            <input type="text" id="message" placeholder="أكتب رسالة هنا">
+            <button id="send">إرسال</button>
+        </div>
+        <div class="online-users">
+            <h2>المتواجدون حالياً</h2>
+            <ul id="online-users-list"></ul>
+        </div>
+    </div>
+
+</body></html>
